@@ -77,7 +77,7 @@ if playerBJ and not dealerBJ:
 #if dealer is showing an ace, ask about insurance
 w = 0
 while w == 0 and dealerH[0][0] == 'Ace' and not playerBJ:
-    response = input('The dealer is showing an ace, would you like to buy insurance? (yes or no)').lstrip()
+    response = input('The dealer is showing an ace, would you like to buy insurance? (yes or no)').lstrip().lower()
     if response == 'yes':
         if dealerBJ:
             print('The dealer has blackjack, but you won the insurance bet. Congratulations')
@@ -98,7 +98,7 @@ while w == 0 and dealerH[0][0] == 'Ace' and not playerBJ:
 # ask player what they want to do
 x = 0
 while x == 0:
-    response = input('What would you like to do? Hit, stand, or double down?').lstrip()
+    response = input('What would you like to do? Hit, stand, or double down?').lstrip().lower()
     if response == 'hit':
         playerH.append(deck[drawCard()])
         print(f'You drew the {playerH[-1][0]} of {playerH[-1][1]}. Your hand is now {handValue(playerH)}.')
