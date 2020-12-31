@@ -27,10 +27,15 @@ for i in range(0, 52):
 def drawCard():
     return cards.pop(randrange(0, len(cards)))
 
+#create a function to sort hand so aces are last
+def sortHand(card):
+    rank_value = FrenchDeck.ranks.index(card.rank)
+    return rank_value
+
 #create a function to calculate the value of a hand
 def handValue(hand):
     total = 0
-    for card in hand:
+    for card in sorted(hand, key= sortHand):
         if card.rank.isnumeric():
             total += int(card.rank)
         elif card.rank == 'Ace':
@@ -44,7 +49,8 @@ def handValue(hand):
 #draw two cards for the player and the dealer
 playerH, dealerH = [deck[drawCard()], deck[drawCard()]], [deck[drawCard()], deck[drawCard()]]
 
-
+#establish face cards for blackjack purposes
+face = ['10', 'Jack', 'Queen', 'King']
 
 #set blackjacks to false
 playerBJ = False
@@ -57,11 +63,11 @@ print('Welcome to the blackjack table. Good luck.')
 print(f'You have the {playerH[0][0]} of {playerH[0][1]} and the {playerH[1][0]} of {playerH[1][1]} for a total of {handValue(playerH)}. The dealer is showing the {dealerH[0][0]} of {dealerH[0][1]}.')
 
 #check if player has blackjack
-if (playerH[0][0] == 'Ace' and (playerH[1][0] == '10' or playerH[1][0] == 'Jack' or playerH[1][0] == 'Queen' or playerH[1][0] == 'King')) or (playerH[1][0] == 'Ace' and (playerH[0][0] == '10' or playerH[0][0] == 'Jack' or playerH[0][0] == 'Queen' or playerH[0][0] == 'King')):
+if (playerH[0][0] == 'Ace' and (playerH[1][0] in face)) or (playerH[1][0] == 'Ace' and (playerH[0][0] in face)):
     playerBJ = True
 
 #check if the dealer has blackjack
-if (dealerH[0][0] == 'Ace' and (dealerH[1][0] == '10' or dealerH[1][0] == 'Jack' or dealerH[1][0] == 'Queen' or dealerH[1][0] == 'King')) or (dealerH[1][0] == 'Ace' and (dealerH[1][0] == '10' or dealerH[0][0] == 'Jack' or dealerH[0][0] == 'Queen' or dealerH[0][0] == 'King')):
+if (dealerH[0][0] == 'Ace' and (dealerH[1][0] in face)) or (dealerH[1][0] == 'Ace' and (dealerH[1][0] in face)):
     dealerBJ = True
 
 #if both player and dealer have blackjack, end game
