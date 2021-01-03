@@ -69,7 +69,7 @@ while restart == True:
         cards.append(i)
 
     #draw two cards for the player and the dealer
-    playerH, dealerH = [deck[drawCard()], deck[drawCard()]], [deck[drawCard()], deck[drawCard()]]
+    playerH, dealerH = [deck[drawCard()], deck[drawCard()]], [deck[-1], deck[drawCard()]]
 
     #set blackjacks to false
     playerBJ = False
@@ -86,38 +86,38 @@ while restart == True:
     if (dealerH[0][0] == 'Ace' and (dealerH[1][0] in face)) or (dealerH[1][0] == 'Ace' and (dealerH[1][0] in face)):
         dealerBJ = True
 
-    #if both player and dealer have blackjack, end game
+    #if both player and dealer have blackjack
     if playerBJ and dealerBJ:
         print('Both you and the dealer have blackjack. The hand is a push.')
         restarter()
         continue
 
-    #if player has blackjack
+    #if just the player has blackjack
     if playerBJ and not dealerBJ:
         print('You have blackjack. Big money!')
         restarter()
         continue
 
-    #if dealer is showing an ace, ask about insurance
+    #if the dealer is showing an ace, ask about insurance
     w = 0
     while w == 0 and dealerH[0][0] == 'Ace' and not playerBJ:
         response = input('The dealer is showing an ace, would you like to buy insurance? (yes or no)').lstrip().lower()
         if response == 'yes':
             if dealerBJ:
-                print(f'The dealer has blackjack, but you won the insurance bet. Well done, {name}')
+                print(f'The dealer\'s other card is the {dealerH[1][0]} of {dealerH[1][1]} and therefore has blackjack, but you won the insurance bet. Well done, {name}')
                 restarter()
                 continue
             else:
                 print('The dealer does not have blackjack, so you lost the insurance bet. But, the hand continues.')
-            w += 1
+                w += 1
         elif response == 'no':
             if dealerBJ:
-                print('The dealer has blackjack. Tough luck old chap')
+                print(f'The dealer\'s other card is the {dealerH[1][0]} of {dealerH[1][1]} and therefore has blackjack. Tough luck old chap')
                 restarter()
                 continue
             else:
                 print('The dealer does not have blackjack. The hand continues.')
-            w += 1
+                w += 1
         else:
             print('Please respond yes or no')
 
