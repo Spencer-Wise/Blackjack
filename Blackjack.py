@@ -139,13 +139,20 @@ while True:
         restarter()
         continue
 
+    #establish options for the player's action
+    options = ['hit', 'stand', 'double down']
+    if playerH[0][0] == playerH[1][0]:
+        options.append('split')
+
     # ask player what they want to do
     x = 0
     while x == 0:
-        if extracards == 0:
-            response = input('What would you like to do? Your options are to hit, stand, or double down.').strip().lower()
-        else:
-            response = input('What would you like to do? Your options are to hit or stand.').strip().lower()
+        if extracards != 0:
+            if 'double down' in options:
+                options.remove('double down')
+            if 'split' in options:
+                options.remove('split')
+        response = input('What would you like to do? Your options are: ' + ', '.join(options)).strip().lower()
         if response == 'hit':
             hit(playerH)
             extracards += 1
