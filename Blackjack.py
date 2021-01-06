@@ -38,6 +38,7 @@ def handValue(hand):
             total += 10
     return total
 
+#establish a function to ask player if they want to play again
 def restarter():
     while True:
         response = input('Would you like to play again?').strip().lower()
@@ -49,8 +50,44 @@ def restarter():
         else:
             print('Please response with yes or no.')
 
+#create function to add a card to hand
 def hit(hand):
     hand.append(deck[drawCard()])
+
+#establish function for player actions
+def playeraction(hand):
+    x = 0
+    while x == 0:
+        if len(hand) > 2:
+            if 'double down' in options:
+                options.remove('double down')
+            if 'split' in options:
+                options.remove('split')
+        response = input('What would you like to do? Your options are: ' + ', '.join(options)).strip().lower()
+        if response == 'hit':
+            hit(hand)
+            print(f'You drew the {hand[-1][0]} of {hand[-1][1]}. Your hand is now {handValue(hand)}.')
+            if handValue(hand) > 21:
+                print(f'You have busted. Better luck next time, {name}.')
+                restarter()
+                return True
+        elif response == 'stand':
+            print('You have chosen to stand.')
+            x += 1
+        elif response == 'double down':
+            if len(hand) > 2:
+                print('You cannot double down as you\'ve already received an extra card.')
+            else:
+                hit(hand)
+                print(f'You have chosen to double down. You drew the {hand[-1][0]} of {hand[-1][1]}. Your hand is now {handValue(hand)}.')
+                if handValue(hand) > 21:
+                    print(f'You have busted. Better luck next time, {name}.')
+                    restarter()
+                    return True
+                x += 1
+        else:
+            print('Please pick an option.')
+    return False
 
 # welcome the player and ask their name
 name = input('Welcome to the blackjack table. What is your name?').strip()
@@ -60,6 +97,7 @@ print(f'Good luck, {name}.')
 #establish face cards for blackjack purposes
 face = ['10', 'Jack', 'Queen', 'King']
 
+#start game loop
 while True:
     #establish deck
     deck = FrenchDeck()
@@ -145,40 +183,7 @@ while True:
         options.append('split')
 
     # ask player what they want to do
-    x = 0
-    while x == 0:
-        if extracards != 0:
-            if 'double down' in options:
-                options.remove('double down')
-            if 'split' in options:
-                options.remove('split')
-        response = input('What would you like to do? Your options are: ' + ', '.join(options)).strip().lower()
-        if response == 'hit':
-            hit(playerH)
-            extracards += 1
-            print(f'You drew the {playerH[-1][0]} of {playerH[-1][1]}. Your hand is now {handValue(playerH)}.')
-            if handValue(playerH) > 21:
-                print(f'You have busted. Better luck next time, {name}.')
-                restarter()
-                done = True
-                break
-        elif response == 'stand':
-            print('You have chosen to stand.')
-            x += 1
-        elif response == 'double down':
-            if extracards != 0:
-                print('You cannot double down as you\'ve already received an extra card.')
-            else:
-                hit(playerH)
-                print(f'You have chosen to double down. You drew the {playerH[-1][0]} of {playerH[-1][1]}. Your hand is now {handValue(playerH)}.')
-                if handValue(playerH) > 21:
-                    print(f'You have busted. Better luck next time, {name}.')
-                    restarter()
-                    done = True
-                    break
-                x += 1
-        else:
-            print('Please pick an option.')
+    done = playeraction(playerH)
 
     #restart if the game is done
     if done == True:
@@ -218,4 +223,3 @@ while True:
         print(f'You and the dealer both have {handValue(playerH)}. The hand is a push.')
         restarter()
         continue
-
