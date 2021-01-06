@@ -49,8 +49,8 @@ def restarter():
         else:
             print('Please response with yes or no.')
 
-#set restart counter to true
-restart = True
+def hit(hand):
+    hand.append(deck[drawCard()])
 
 # welcome the player and ask their name
 name = input('Welcome to the blackjack table. What is your name?').strip()
@@ -60,7 +60,7 @@ print(f'Good luck, {name}.')
 #establish face cards for blackjack purposes
 face = ['10', 'Jack', 'Queen', 'King']
 
-while restart == True:
+while True:
     #establish deck
     deck = FrenchDeck()
 
@@ -147,7 +147,7 @@ while restart == True:
         else:
             response = input('What would you like to do? Your options are to hit or stand.').strip().lower()
         if response == 'hit':
-            playerH.append(deck[drawCard()])
+            hit(playerH)
             extracards += 1
             print(f'You drew the {playerH[-1][0]} of {playerH[-1][1]}. Your hand is now {handValue(playerH)}.')
             if handValue(playerH) > 21:
@@ -162,7 +162,7 @@ while restart == True:
             if extracards != 0:
                 print('You cannot double down as you\'ve already received an extra card.')
             else:
-                playerH.append(deck[drawCard()])
+                hit(playerH)
                 print(f'You have chosen to double down. You drew the {playerH[-1][0]} of {playerH[-1][1]}. Your hand is now {handValue(playerH)}.')
                 if handValue(playerH) > 21:
                     print(f'You have busted. Better luck next time, {name}.')
@@ -191,7 +191,7 @@ while restart == True:
         elif (handValue(dealerH) <= 21) and (handValue(dealerH) >= 17):
             y += 1
         else:
-            dealerH.append(deck[drawCard()])
+            hit(dealerH)
             print(f'The dealer draws the {dealerH[-1][0]} of {dealerH[-1][1]}. The dealer now has {handValue(dealerH)}.')
 
     #restart if the game is done
