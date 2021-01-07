@@ -24,19 +24,50 @@ def sortHand(card):
     rank_value = FrenchDeck.ranks.index(card.rank)
     return rank_value
 
-#create a function to calculate the value of a hand
-def handValue(hand):
-    total = 0
-    for card in sorted(hand, key= sortHand):
-        if card.rank.isnumeric():
-            total += int(card.rank)
-        elif card.rank == 'Ace':
-            total += 11
-            if total > 21:
-                total -= 10
+#establish the hand class
+class Hand:
+    def __init__(self):
+        self.cards = []
+    def __len__(self):
+        return len(self.cards)
+    def __getitem__(self, position):
+        return self.cards[position]
+    @property
+    def value(self):
+        total = 0
+        for card in sorted(self.cards, key= sortHand):
+            if card.rank.isnumeric():
+                total += int(card.rank)
+            elif card.rank == 'Ace':
+                total += 11
+                if total > 21:
+                    total -= 10
+            else:
+                total += 10
+        return total
+    @property
+    def bust(self):
+        if self.value > 21:
+            return True
         else:
-            total += 10
-    return total
+            return False
+    @property
+    def blackjack(self):
+        face = ['10', 'Jack', 'Queen', 'King']
+        if len(self.cards) == 2:
+            facecards = 0
+            aces = 0
+            for card in self.cards:
+                if card.rank in face:
+                    facecards += 1
+                if card.rank == 'Ace':
+                    aces += 1
+            if facecards == 1 and aces == 1:
+                return True
+            else:
+                return False
+        else:
+            return False
 
 #establish a function to ask player if they want to play again
 def restarter():
@@ -58,6 +89,8 @@ def hit(hand):
 def playeraction(hand):
     x = 0
     while x == 0:
+        if playerH[0][0] == playerH[1][0]:
+            options.append('split')
         if len(hand) > 2:
             if 'double down' in options:
                 options.remove('double down')
@@ -65,9 +98,9 @@ def playeraction(hand):
                 options.remove('split')
         response = input('What would you like to do? Your options are: ' + ', '.join(options)).strip().lower()
         if response == 'hit':
-            hit(hand)
-            print(f'You drew the {hand[-1][0]} of {hand[-1][1]}. Your hand is now {handValue(hand)}.')
-            if handValue(hand) > 21:
+            hit(hand.cards)
+            print(f'You drew the {hand[-1][0]} of {hand[-1][1]}. Your hand is now {hand.value}.')
+            if hand.bust:
                 print(f'You have busted. Better luck next time, {name}.')
                 restarter()
                 return True
@@ -78,9 +111,9 @@ def playeraction(hand):
             if len(hand) > 2:
                 print('You cannot double down as you\'ve already received an extra card.')
             else:
-                hit(hand)
-                print(f'You have chosen to double down. You drew the {hand[-1][0]} of {hand[-1][1]}. Your hand is now {handValue(hand)}.')
-                if handValue(hand) > 21:
+                hit(hand.cards)
+                print(f'You have chosen to double down. You drew the {hand[-1][0]} of {hand[-1][1]}. Your hand is now {hand.value}.')
+                if hand.bust:
                     print(f'You have busted. Better luck next time, {name}.')
                     restarter()
                     return True
@@ -106,8 +139,13 @@ while True:
     for i in range(0, 52):
         cards.append(i)
 
-    #draw two cards for the player and the dealer
-    playerH, dealerH = [deck[drawCard()], deck[drawCard()]], [deck[drawCard()], deck[drawCard()]]
+    #create hands of the player and dealer and draw two cards for each
+    playerH = Hand()
+    hit(playerH.cards)
+    hit(playerH.cards)
+    dealerH = Hand()
+    hit(dealerH.cards)
+    hit(dealerH.cards)
 
     #set blackjacks to false
     playerBJ = False
@@ -120,24 +158,16 @@ while True:
     done = False
 
     #reveal player's starting hand and the dealer's first card
-    print(f'You have the {playerH[0][0]} of {playerH[0][1]} and the {playerH[1][0]} of {playerH[1][1]} for a total of {handValue(playerH)}. The dealer is showing the {dealerH[0][0]} of {dealerH[0][1]}.')
-
-    #check if player has blackjack
-    if (playerH[0][0] == 'Ace' and (playerH[1][0] in face)) or (playerH[1][0] == 'Ace' and (playerH[0][0] in face)):
-        playerBJ = True
-
-    #check if the dealer has blackjack
-    if (dealerH[0][0] == 'Ace' and (dealerH[1][0] in face)) or (dealerH[1][0] == 'Ace' and (dealerH[1][0] in face)):
-        dealerBJ = True
+    print(f'You have the {playerH[0][0]} of {playerH[0][1]} and the {playerH[1][0]} of {playerH[1][1]} for a total of {playerH.value}. The dealer is showing the {dealerH[0][0]} of {dealerH[0][1]}.')
 
     #if both player and dealer have blackjack
-    if playerBJ and dealerBJ:
-        print('Both you and the dealer have blackjack. The hand is a push.')
+    if playerH.blackjack and dealerH.blackjack:
+        print('Both you and the dealer have blackjack. The hand is a push. What are the odds?')
         restarter()
         continue
 
     #if just the player has blackjack
-    if playerBJ and not dealerBJ:
+    if playerH.blackjack and not dealerH.blackjack:
         print('You have blackjack. Big money!')
         restarter()
         continue
@@ -147,7 +177,7 @@ while True:
     while w == 0 and dealerH[0][0] == 'Ace' and not playerBJ:
         response = input('The dealer is showing an ace, would you like to buy insurance? (yes or no)').strip().lower()
         if response == 'yes':
-            if dealerBJ:
+            if dealerH.blackjack:
                 print(f'The dealer\'s other card is the {dealerH[1][0]} of {dealerH[1][1]} and therefore they have blackjack, but you won the insurance bet. Well done, {name}')
                 restarter()
                 done = True
@@ -156,7 +186,7 @@ while True:
                 print('The dealer does not have blackjack, so you lost the insurance bet. But, the hand continues.')
                 w += 1
         elif response == 'no':
-            if dealerBJ:
+            if dealerH.blackjack:
                 print(f'The dealer\'s other card is the {dealerH[1][0]} of {dealerH[1][1]} and therefore they have blackjack. Tough luck old chap')
                 restarter()
                 done = True
@@ -172,15 +202,13 @@ while True:
         continue
 
     #if the dealer has hidden blackjack
-    if dealerBJ:
+    if dealerH.blackjack:
         print('The dealer\'s facedown card is an ace and therefore they have blackjack. Tough luck.')
         restarter()
         continue
 
     #establish options for the player's action
     options = ['hit', 'stand', 'double down']
-    if playerH[0][0] == playerH[1][0]:
-        options.append('split')
 
     # ask player what they want to do
     done = playeraction(playerH)
@@ -190,36 +218,37 @@ while True:
         continue
 
     #reveal the dealer's other card
-    print(f'The dealer\'s other card is the {dealerH[1][0]} of {dealerH[1][1]} for a total of {handValue(dealerH)}.')
+    print(f'The dealer\'s other card is the {dealerH[1][0]} of {dealerH[1][1]} for a total of {dealerH.value}.')
 
     #check the dealer's result and draw cards if necessary
     y = 0
     while y == 0:
-        if handValue(dealerH) > 21:
+        if dealerH.bust:
             print(f'The dealer has busted. {name} wins!')
             restarter()
             done = True
             break
-        elif (handValue(dealerH) <= 21) and (handValue(dealerH) >= 17):
+        elif (dealerH.value <= 21) and (dealerH.value >= 17):
             y += 1
         else:
-            hit(dealerH)
-            print(f'The dealer draws the {dealerH[-1][0]} of {dealerH[-1][1]}. The dealer now has {handValue(dealerH)}.')
+            hit(dealerH.cards)
+            print(f'The dealer draws the {dealerH[-1][0]} of {dealerH[-1][1]}. The dealer now has {dealerH.value}.')
 
     #restart if the game is done
     if done == True:
         continue
 
     #if neither have busted, compare results
-    if handValue(playerH) > handValue(dealerH):
-        print(f'You have beaten the dealer with a hand of {handValue(playerH)} vs. their {handValue(dealerH)}. Congratulations!')
+    if playerH.value > dealerH.value:
+        print(f'You have beaten the dealer with a hand of {playerH.value} vs. their {dealerH.value}. Congratulations!')
         restarter()
         continue
-    elif handValue(playerH) < handValue(dealerH):
-        print(f'The dealer has beaten you with a hand of {handValue(dealerH)} vs. your {handValue(playerH)}. Better luck next time.')
+    elif playerH.value < dealerH.value:
+        print(f'The dealer has beaten you with a hand of {dealerH.value} vs. your {playerH.value}. Better luck next time.')
         restarter()
         continue
     else:
-        print(f'You and the dealer both have {handValue(playerH)}. The hand is a push.')
+        assert playerH.value == dealerH.value
+        print(f'You and the dealer both have {playerH.value}. The hand is a push.')
         restarter()
         continue
