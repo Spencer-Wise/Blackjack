@@ -30,6 +30,7 @@ class Hand:
         self.cards = []
         self.done = False
         self.stand = False
+        self.wager = 0
     def __len__(self):
         return len(self.cards)
     def __getitem__(self, position):
@@ -89,8 +90,7 @@ def hit(hand):
 
 #establish function for player actions
 def playeraction(i, hand):
-    x = 0
-    while x == 0:
+    while True:
         if hand[0][0] == hand[1][0] and 'split' not in options:
             options.append('split')
         if hand[0][0] != hand[1][0] and 'split' in options:
@@ -112,7 +112,7 @@ def playeraction(i, hand):
         elif response == 'stand':
             print('You have chosen to stand.')
             hand.stand = True
-            x += 1
+            break
         elif response == 'double down':
             if len(hand) > 2:
                 print('You cannot double down as you\'ve already received an extra card.')
@@ -123,7 +123,7 @@ def playeraction(i, hand):
                     print(f'You have busted. Better luck next time, {name}.')
                     return True
                 hand.stand = True
-                x += 1
+                break
         elif response == 'split':
             if len(hand) == 2 and hand[0][0] == hand[1][0]:
                 nexthand = len(playerHands) + 1
@@ -265,15 +265,15 @@ while True:
     print(f'The dealer\'s other card is the {dealerH[1][0]} of {dealerH[1][1]} for a total of {dealerH.value}.')
 
     #check the dealer's result and draw cards if necessary
-    y = 0
-    while y == 0:
+    while True:
         if dealerH.bust:
             print(f'The dealer has busted. {name} wins!')
             dealerH.done = True
             break
         elif (dealerH.value <= 21) and (dealerH.value >= 17):
-            y += 1
+            break
         else:
+            assert dealerH.value < 17
             hit(dealerH.cards)
             print(f'The dealer draws the {dealerH[-1][0]} of {dealerH[-1][1]}. The dealer now has {dealerH.value}.')
 
