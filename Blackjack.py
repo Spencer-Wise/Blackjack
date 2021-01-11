@@ -75,7 +75,7 @@ class Hand:
 #establish a function to ask player if they want to play again
 def restarter():
     while True:
-        response = input('Would you like to play again? ').strip().lower()
+        response = input(f'Your current account balance is {balance}. Would you like to play again? \n').strip().lower()
         if response == 'yes':
             return
         elif response == 'no':
@@ -90,6 +90,7 @@ def hit(hand):
 
 #establish function for player actions
 def playeraction(i, hand):
+    global balance
     while True:
         if hand[0][0] == hand[1][0] and 'split' not in options:
             options.append('split')
@@ -102,7 +103,7 @@ def playeraction(i, hand):
             print(f'For hand number #{i}, the total is {hand.value}. Your cards are:')
             for card in hand:
                 print('{} of {}'.format(card[0], card[1]))
-        response = input('What would you like to do? Your options are: ' + ', '.join(options) + ' ').strip().lower()
+        response = input('What would you like to do? Your options are: ' + ', '.join(options) + '. \n').strip().lower()
         if response == 'hit':
             hit(hand.cards)
             print(f'You drew the {hand[-1][0]} of {hand[-1][1]}. Your hand is now {hand.value}.')
@@ -117,6 +118,8 @@ def playeraction(i, hand):
             if len(hand) > 2:
                 print('You cannot double down as you\'ve already received an extra card.')
             else:
+                balance -= hand.wager
+                hand.wager *= 2
                 hit(hand.cards)
                 print(f'You have chosen to double down. You drew the {hand[-1][0]} of {hand[-1][1]}. Your hand is now {hand.value}.')
                 if hand.bust:
@@ -125,15 +128,20 @@ def playeraction(i, hand):
                 hand.stand = True
                 break
         elif response == 'split':
-            if len(hand) == 2 and hand[0][0] == hand[1][0]:
-                nexthand = len(playerHands) + 1
-                playerHands[nexthand] = Hand()
-                playerHands[nexthand].cards.append(hand.cards.pop(1))
-                hit(hand.cards)
-                hit(playerHands[nexthand].cards)
-                return False
+            if hand.wager <= balance:
+                if len(hand) == 2 and hand[0][0] == hand[1][0]:
+                    nexthand = len(playerHands) + 1
+                    playerHands[nexthand] = Hand()
+                    playerHands[nexthand].cards.append(hand.cards.pop(1))
+                    balance -= hand.wager
+                    playerHands[nexthand].wager = hand.wager
+                    hit(hand.cards)
+                    hit(playerHands[nexthand].cards)
+                    return False
+                else:
+                    print('You may not split this hand.')
             else:
-                print('You may not split this hand.')
+                print('You do not have enough funds to split this hand.')
         else:
             print('Please pick an option. ')
     return False
@@ -152,12 +160,11 @@ def endCheck(handsdict):
         return False
 
 # welcome the player and ask their name
-name = input('Welcome to the blackjack table. What is your name? ').strip()
-print(f'Good luck, {name}.')
+name = input('Welcome to the blackjack table. What is your name? \n').strip()
+print(f'Good luck, {name}. You have 1000 chips to start.')
 
-
-#establish face cards for blackjack purposes
-face = ['10', 'Jack', 'Queen', 'King']
+#give them 1000 chips to start with
+balance = 1000
 
 #start game loop
 while True:
@@ -189,17 +196,32 @@ while True:
     #set restart trigger to false
     done = False
 
+    #ask player how much they want to wager for the hand
+    while True:
+        try:
+            bet = int(input(f'How much would you like to wager on this hand? \n').strip())
+            if bet <= balance:
+                playerHands[1].wager = bet
+                balance -= bet
+                break
+            else:
+                print(f'Please enter a number. Your current balance is {balance}.')
+        except:
+            print(f'Please enter a number. Your current balance is {balance}.')
+
     #reveal player's starting hand and the dealer's first card
     print(f'You have the {playerHands[1][0][0]} of {playerHands[1][0][1]} and the {playerHands[1][1][0]} of {playerHands[1][1][1]} for a total of {playerHands[1].value}. The dealer is showing the {dealerH[0][0]} of {dealerH[0][1]}.')
 
     #if both player and dealer have blackjack
     if playerHands[1].blackjack and dealerH.blackjack:
+        balance += playerHands[1].wager
         print('Both you and the dealer have blackjack. The hand is a push. What are the odds?')
         restarter()
         continue
 
     #if just the player has blackjack
     if playerHands[1].blackjack and not dealerH.blackjack:
+        balance += int((playerHands[1].wager * 2.5))
         print('You have blackjack. Big money!')
         restarter()
         continue
@@ -207,25 +229,39 @@ while True:
     #if the dealer is showing an ace, ask about insurance
     w = 0
     while w == 0 and dealerH[0][0] == 'Ace' and not playerHands[1].blackjack:
-        response = input('The dealer is showing an ace, would you like to buy insurance? (yes or no)').strip().lower()
-        if response == 'yes':
-            if dealerH.blackjack:
-                print(f'The dealer\'s other card is the {dealerH[1][0]} of {dealerH[1][1]} and therefore they have blackjack, but you won the insurance bet. Well done, {name}')
-                playerHands[1].done = True
-                break
+        insurance = int(playerHands[1].wager / 2)
+        if insurance <= balance:
+            response = input(f'The dealer is showing an ace, would you like to buy insurance? It is half the amount of your original bet, so {insurance}. (yes or no) \n').strip().lower()
+            if response == 'yes':
+                balance -= insurance
+                if dealerH.blackjack:
+                    balance += insurance * 3
+                    print(f'The dealer\'s other card is the {dealerH[1][0]} of {dealerH[1][1]} and therefore they have blackjack, but you won the insurance bet. Well done, {name}.')
+                    playerHands[1].done = True
+                    break
+                else:
+                    print('The dealer does not have blackjack, so you lost the insurance bet. But, the hand continues.')
+                    break
+            elif response == 'no':
+                if dealerH.blackjack:
+                    print(f'The dealer\'s other card is the {dealerH[1][0]} of {dealerH[1][1]} and therefore they have blackjack. Tough luck old chap')
+                    playerHands[1].done = True
+                    break
+                else:
+                    print('The dealer does not have blackjack. The hand continues.')
+                    break
             else:
-                print('The dealer does not have blackjack, so you lost the insurance bet. But, the hand continues.')
-                w += 1
-        elif response == 'no':
+                print('Please respond yes or no')
+        else:
+            print('The dealer is showing an ace, but you do not have enough funds to buy insurance.')
             if dealerH.blackjack:
-                print(f'The dealer\'s other card is the {dealerH[1][0]} of {dealerH[1][1]} and therefore they have blackjack. Tough luck old chap')
+                print(
+                    f'The dealer\'s other card is the {dealerH[1][0]} of {dealerH[1][1]} and therefore they have blackjack. Tough luck old chap')
                 playerHands[1].done = True
                 break
             else:
                 print('The dealer does not have blackjack. The hand continues.')
-                w += 1
-        else:
-            print('Please respond yes or no')
+                break
 
     #restart if game is done
     if endCheck(playerHands) == True:
@@ -267,6 +303,9 @@ while True:
     #check the dealer's result and draw cards if necessary
     while True:
         if dealerH.bust:
+            for hand in playerHands.values():
+                if hand.done == False:
+                    balance += hand.wager * 2
             print(f'The dealer has busted. {name} wins!')
             dealerH.done = True
             break
@@ -288,11 +327,13 @@ while True:
             if len(playerHands) != 1 :
                 print(f'For hand number #{i}:')
             if hand.value > dealerH.value:
+                balance += hand.wager * 2
                 print(f'You have beaten the dealer with a hand of {hand.value} vs. their {dealerH.value}. Congratulations!')
             elif hand.value < dealerH.value:
                 print(f'The dealer has beaten you with a hand of {dealerH.value} vs. your {hand.value}. Better luck next time.')
             else:
                 assert hand.value == dealerH.value
+                balance += hand.wager
                 print(f'You and the dealer both have {hand.value}. The hand is a push.')
             hand.done = True
 
