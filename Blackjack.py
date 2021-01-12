@@ -1,7 +1,23 @@
 from random import randrange
 import collections
 import sys
+import json
 
+#open data from stats.json or create new file and format it
+try:
+    file1 = open('stats.json')
+    data = json.load(file1)
+    file1.close()
+except:
+    file1 = open('stats.json', 'w+')
+    print('No data found')
+    data = {'hands': 0, 'hits': 0, 'stands': 0, 'DDs': 0, 'splits': 0, 'wins': 0, 'losses': 0, 'pushes': 0,
+            'player busts': 0, 'dealer busts': 0, 'playerBJs': 0, 'dealerBJs': 0, 'high score': 0,
+            'ibets taken': 0, 'ibets won': 0, 'ibets lost': 0, 'ibets missed': 0, 'ibets avoided': 0}
+    json.dump(data, file1)
+    file1.close()
+
+#establish card tuple with rank and suit
 Card = collections.namedtuple('Card', ['rank', 'suit'])
 
 #create deck class
@@ -19,7 +35,7 @@ class FrenchDeck:
 def drawCard():
     return cards.pop(randrange(0, len(cards)))
 
-#create a function to sort hand so aces are last
+#create a function to sort hand so aces are calculated last
 def sortHand(card):
     rank_value = FrenchDeck.ranks.index(card.rank)
     return rank_value
@@ -74,15 +90,24 @@ class Hand:
 
 #establish a function to ask player if they want to play again
 def restarter():
+    global balance
     while True:
         response = input(f'Your current account balance is {balance}. Would you like to play again? \n').strip().lower()
         if response == 'yes':
             return
         elif response == 'no':
+            if balance > data['high score']:
+                data['high score'] = balance
+                print('New high score! Well done.')
+            file1 = open('stats.json', 'w')
+            json.dump(data, file1)
+            file1.close()
             print(f'Thank you for playing, {name}. Goodbye.')
             sys.exit()
+        elif response == 'stats':
+            print(data)
         else:
-            print('Please respond with yes or no. ')
+            print('Please respond with yes or no.')
 
 #create function to add a card to hand
 def hit(hand):
@@ -105,24 +130,33 @@ def playeraction(i, hand):
                 print('{} of {}'.format(card[0], card[1]))
         response = input('What would you like to do? Your options are: ' + ', '.join(options) + '. \n').strip().lower()
         if response == 'hit':
+            data['hits'] += 1
             hit(hand.cards)
             print(f'You drew the {hand[-1][0]} of {hand[-1][1]}. Your hand is now {hand.value}.')
             if hand.bust:
+                data['player busts'] += 1
+                data['losses'] += 1
                 print(f'You have busted. Better luck next time, {name}.')
                 return True
         elif response == 'stand':
+            data['stands'] += 1
             print('You have chosen to stand.')
             hand.stand = True
             break
         elif response == 'double down':
             if len(hand) > 2:
                 print('You cannot double down as you\'ve already received an extra card.')
+            elif hand.wager > balance:
+                print('You do not have enough funds to double down.')
             else:
+                data['DDs'] += 1
                 balance -= hand.wager
                 hand.wager *= 2
                 hit(hand.cards)
                 print(f'You have chosen to double down. You drew the {hand[-1][0]} of {hand[-1][1]}. Your hand is now {hand.value}.')
                 if hand.bust:
+                    data['player busts'] += 1
+                    data['losses'] += 1
                     print(f'You have busted. Better luck next time, {name}.')
                     return True
                 hand.stand = True
@@ -130,6 +164,8 @@ def playeraction(i, hand):
         elif response == 'split':
             if hand.wager <= balance:
                 if len(hand) == 2 and hand[0][0] == hand[1][0]:
+                    data['hands'] += 1
+                    data['splits'] += 1
                     nexthand = len(playerHands) + 1
                     playerHands[nexthand] = Hand()
                     playerHands[nexthand].cards.append(hand.cards.pop(1))
@@ -180,21 +216,12 @@ while True:
     playerHands[1] = Hand()
     hit(playerHands[1].cards)
     hit(playerHands[1].cards)
+    data['hands'] += 1
     # playerHands[1].cards.append(deck[1])
     # playerHands[1].cards.append(deck[14])
     dealerH = Hand()
     hit(dealerH.cards)
     hit(dealerH.cards)
-
-    #set blackjacks to false
-    playerBJ = False
-    dealerBJ = False
-
-    #set extra cards drawn to 0
-    extracards = 0
-
-    #set restart trigger to false
-    done = False
 
     #ask player how much they want to wager for the hand
     while True:
@@ -214,6 +241,9 @@ while True:
 
     #if both player and dealer have blackjack
     if playerHands[1].blackjack and dealerH.blackjack:
+        data['playerBJs'] += 1
+        data['dealerBJs'] += 1
+        data['pushes'] += 1
         balance += playerHands[1].wager
         print('Both you and the dealer have blackjack. The hand is a push. What are the odds?')
         restarter()
@@ -221,6 +251,8 @@ while True:
 
     #if just the player has blackjack
     if playerHands[1].blackjack and not dealerH.blackjack:
+        data['playerBJs'] += 1
+        data['wins'] += 1
         balance += int((playerHands[1].wager * 2.5))
         print('You have blackjack. Big money!')
         restarter()
@@ -233,21 +265,30 @@ while True:
         if insurance <= balance:
             response = input(f'The dealer is showing an ace, would you like to buy insurance? It is half the amount of your original bet, so {insurance}. (yes or no) \n').strip().lower()
             if response == 'yes':
+                data['ibets taken'] += 1
                 balance -= insurance
                 if dealerH.blackjack:
+                    data['dealerBJs'] += 1
+                    data['losses'] += 1
+                    data['ibets won'] += 1
                     balance += insurance * 3
                     print(f'The dealer\'s other card is the {dealerH[1][0]} of {dealerH[1][1]} and therefore they have blackjack, but you won the insurance bet. Well done, {name}.')
                     playerHands[1].done = True
                     break
                 else:
+                    data['ibets lost'] += 1
                     print('The dealer does not have blackjack, so you lost the insurance bet. But, the hand continues.')
                     break
             elif response == 'no':
                 if dealerH.blackjack:
+                    data['dealerBJs'] += 1
+                    data['losses'] += 1
+                    data['ibets missed'] += 1
                     print(f'The dealer\'s other card is the {dealerH[1][0]} of {dealerH[1][1]} and therefore they have blackjack. Tough luck old chap')
                     playerHands[1].done = True
                     break
                 else:
+                    data['ibets avoided'] += 1
                     print('The dealer does not have blackjack. The hand continues.')
                     break
             else:
@@ -255,8 +296,9 @@ while True:
         else:
             print('The dealer is showing an ace, but you do not have enough funds to buy insurance.')
             if dealerH.blackjack:
-                print(
-                    f'The dealer\'s other card is the {dealerH[1][0]} of {dealerH[1][1]} and therefore they have blackjack. Tough luck old chap')
+                data['dealerBJs'] += 1
+                data['losses'] += 1
+                print(f'The dealer\'s other card is the {dealerH[1][0]} of {dealerH[1][1]} and therefore they have blackjack. Tough luck old chap')
                 playerHands[1].done = True
                 break
             else:
@@ -270,6 +312,8 @@ while True:
 
     #if the dealer has hidden blackjack
     if dealerH.blackjack:
+        data['losses'] += 1
+        data['dealerBJs'] += 1
         print('The dealer\'s facedown card is an ace and therefore they have blackjack. Tough luck.')
         restarter()
         continue
@@ -303,8 +347,10 @@ while True:
     #check the dealer's result and draw cards if necessary
     while True:
         if dealerH.bust:
+            data['dealer busts'] += 1
             for hand in playerHands.values():
                 if hand.done == False:
+                    data['wins'] += 1
                     balance += hand.wager * 2
             print(f'The dealer has busted. {name} wins!')
             dealerH.done = True
@@ -328,12 +374,15 @@ while True:
                 print(f'For hand number #{i}:')
             if hand.value > dealerH.value:
                 balance += hand.wager * 2
+                data['wins'] += 1
                 print(f'You have beaten the dealer with a hand of {hand.value} vs. their {dealerH.value}. Congratulations!')
             elif hand.value < dealerH.value:
+                data['losses'] += 1
                 print(f'The dealer has beaten you with a hand of {dealerH.value} vs. your {hand.value}. Better luck next time.')
             else:
                 assert hand.value == dealerH.value
                 balance += hand.wager
+                data['pushes'] += 1
                 print(f'You and the dealer both have {hand.value}. The hand is a push.')
             hand.done = True
 
