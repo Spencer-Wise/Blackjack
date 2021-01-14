@@ -18,7 +18,10 @@ except:
     file1.close()
 
 #establish card tuple with rank and suit
-Card = collections.namedtuple('Card', ['rank', 'suit'])
+class Card:
+    def __init__(self, rank, suit):
+        self.rank = rank
+        self.suit = suit
 
 #create deck class
 class FrenchDeck:
@@ -117,9 +120,9 @@ def hit(hand):
 def playeraction(i, hand):
     global balance
     while True:
-        if hand[0][0] == hand[1][0] and 'split' not in options:
+        if hand[0].rank == hand[1].rank and 'split' not in options:
             options.append('split')
-        if hand[0][0] != hand[1][0] and 'split' in options:
+        if hand[0].rank != hand[1].rank and 'split' in options:
             options.remove('split')
         if len(hand) > 2:
             if 'double down' in options:
@@ -127,12 +130,12 @@ def playeraction(i, hand):
         if len(playerHands) > 1:
             print(f'For hand number #{i}, the total is {hand.value}. Your cards are:')
             for card in hand:
-                print('{} of {}'.format(card[0], card[1]))
+                print('{} of {}'.format(card.rank, card.suit))
         response = input('What would you like to do? Your options are: ' + ', '.join(options) + '. \n').strip().lower()
         if response == 'hit':
             data['hits'] += 1
             hit(hand.cards)
-            print(f'You drew the {hand[-1][0]} of {hand[-1][1]}. Your hand is now {hand.value}.')
+            print(f'You drew the {hand[-1].rank} of {hand[-1].suit}. Your hand is now {hand.value}.')
             if hand.bust:
                 data['player busts'] += 1
                 data['losses'] += 1
@@ -153,7 +156,7 @@ def playeraction(i, hand):
                 balance -= hand.wager
                 hand.wager *= 2
                 hit(hand.cards)
-                print(f'You have chosen to double down. You drew the {hand[-1][0]} of {hand[-1][1]}. Your hand is now {hand.value}.')
+                print(f'You have chosen to double down. You drew the {hand[-1].rank} of {hand[-1].suit}. Your hand is now {hand.value}.')
                 if hand.bust:
                     data['player busts'] += 1
                     data['losses'] += 1
@@ -163,7 +166,7 @@ def playeraction(i, hand):
                 break
         elif response == 'split':
             if hand.wager <= balance:
-                if len(hand) == 2 and hand[0][0] == hand[1][0]:
+                if len(hand) == 2 and hand[0].rank == hand[1].rank:
                     data['hands'] += 1
                     data['splits'] += 1
                     nexthand = len(playerHands) + 1
@@ -237,7 +240,7 @@ while True:
             print(f'Please enter a number. Your current balance is {balance}.')
 
     #reveal player's starting hand and the dealer's first card
-    print(f'You have the {playerHands[1][0][0]} of {playerHands[1][0][1]} and the {playerHands[1][1][0]} of {playerHands[1][1][1]} for a total of {playerHands[1].value}. The dealer is showing the {dealerH[0][0]} of {dealerH[0][1]}.')
+    print(f'You have the {playerHands[1][0].rank} of {playerHands[1][0].suit} and the {playerHands[1][1].rank} of {playerHands[1][1].suit} for a total of {playerHands[1].value}. The dealer is showing the {dealerH[0].rank} of {dealerH[0].suit}.')
 
     #if both player and dealer have blackjack
     if playerHands[1].blackjack and dealerH.blackjack:
@@ -260,7 +263,7 @@ while True:
 
     #if the dealer is showing an ace, ask about insurance
     w = 0
-    while w == 0 and dealerH[0][0] == 'Ace' and not playerHands[1].blackjack:
+    while w == 0 and dealerH[0].rank == 'Ace' and not playerHands[1].blackjack:
         insurance = int(playerHands[1].wager / 2)
         if insurance <= balance:
             response = input(f'The dealer is showing an ace, would you like to buy insurance? It is half the amount of your original bet, so {insurance}. (yes or no) \n').strip().lower()
@@ -272,7 +275,7 @@ while True:
                     data['losses'] += 1
                     data['ibets won'] += 1
                     balance += insurance * 3
-                    print(f'The dealer\'s other card is the {dealerH[1][0]} of {dealerH[1][1]} and therefore they have blackjack, but you won the insurance bet. Well done, {name}.')
+                    print(f'The dealer\'s other card is the {dealerH[1].rank} of {dealerH[1].suit} and therefore they have blackjack, but you won the insurance bet. Well done, {name}.')
                     playerHands[1].done = True
                     break
                 else:
@@ -284,7 +287,7 @@ while True:
                     data['dealerBJs'] += 1
                     data['losses'] += 1
                     data['ibets missed'] += 1
-                    print(f'The dealer\'s other card is the {dealerH[1][0]} of {dealerH[1][1]} and therefore they have blackjack. Tough luck old chap')
+                    print(f'The dealer\'s other card is the {dealerH[1].rank} of {dealerH[1].suit} and therefore they have blackjack. Tough luck old chap')
                     playerHands[1].done = True
                     break
                 else:
@@ -298,7 +301,7 @@ while True:
             if dealerH.blackjack:
                 data['dealerBJs'] += 1
                 data['losses'] += 1
-                print(f'The dealer\'s other card is the {dealerH[1][0]} of {dealerH[1][1]} and therefore they have blackjack. Tough luck old chap')
+                print(f'The dealer\'s other card is the {dealerH[1].rank} of {dealerH[1].suit} and therefore they have blackjack. Tough luck old chap')
                 playerHands[1].done = True
                 break
             else:
@@ -342,7 +345,7 @@ while True:
         continue
 
     #reveal the dealer's other card
-    print(f'The dealer\'s other card is the {dealerH[1][0]} of {dealerH[1][1]} for a total of {dealerH.value}.')
+    print(f'The dealer\'s other card is the {dealerH[1].rank} of {dealerH[1].suit} for a total of {dealerH.value}.')
 
     #check the dealer's result and draw cards if necessary
     while True:
@@ -360,7 +363,7 @@ while True:
         else:
             assert dealerH.value < 17
             hit(dealerH.cards)
-            print(f'The dealer draws the {dealerH[-1][0]} of {dealerH[-1][1]}. The dealer now has {dealerH.value}.')
+            print(f'The dealer draws the {dealerH[-1].rank} of {dealerH[-1].suit}. The dealer now has {dealerH.value}.')
 
     #restart if the game is done
     if endCheck(playerHands) == True:
