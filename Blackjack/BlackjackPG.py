@@ -1,5 +1,4 @@
 from random import randrange
-import collections
 import sys
 import json
 import pygame
@@ -17,7 +16,7 @@ for root, dirs, files in os.walk(path):
 
 #initalize pygame window
 pygame.init()
-winSize = winW, winH = 1000, 1000
+winSize = winW, winH = 1920, 1080
 win = pygame.display.set_mode((winSize))
 pygame.display.set_caption('Blackjack')
 black = 0, 0, 0
@@ -26,10 +25,6 @@ white = 255, 255, 255
 input_box = pygame.Rect(250, 250, 100, 100)
 active = False
 color = black
-
-card = pygame.image.load(cardpaths[0])
-win.blit(card, (50, 50))
-pygame.display.update()
 
 #open data from stats.json or create new file and format it
 try:
@@ -126,24 +121,37 @@ class Hand:
 
 #establish a function to ask player if they want to play again
 def restarter():
-    global balance
+    global balance, betbox
+    yesbutton = Button(710, 490, 250, 100, green, 'yes')
+    nobutton = Button(960, 490, 250, 100, green, 'no')
     while True:
-        response = input(f'Your current account balance is {balance}. Would you like to play again? \n').strip().lower()
-        if response == 'yes':
-            return
-        elif response == 'no':
-            if balance > data['high score']:
-                data['high score'] = balance
-                print('New high score! Well done.')
-            file1 = open('stats.json', 'w')
-            json.dump(data, file1)
-            file1.close()
-            print(f'Thank you for playing, {name}. Goodbye.')
-            sys.exit()
-        elif response == 'stats':
-            print(data)
-        else:
-            print('Please respond with yes or no.')
+        text = font.render('Would you like to play another hand?', True, white)
+        for event in pygame.event.get():
+            pos = pygame.mouse.get_pos()
+            if event.type == pygame.QUIT:
+                sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if yesbutton.isOver(pos):
+                    print('success')
+                if nobutton.isOver(pos):
+                    print('not success')
+            if event.type == pygame.MOUSEMOTION:
+                if yesbutton.isOver(pos):
+                    yesbutton.color = white
+                else:
+                    yesbutton.color = green
+                if nobutton.isOver(pos):
+                    nobutton.color = white
+                else:
+                    nobutton.color = green
+        print('restarter')
+        win.fill(black)
+        yesbutton.draw(win, white)
+        nobutton.draw(win, white)
+        win.blit(balancebanner, (850, 20))
+        win.blit(text, (300, 300))
+        pygame.display.flip()
+        clock.tick(30)
 
 #create function to add a card to hand
 def hit(hand):
@@ -153,9 +161,9 @@ def hit(hand):
 def playeraction(i, hand):
     global balance
     while True:
-        if hand[0][0] == hand[1][0] and 'split' not in options:
+        if hand[0].rank == hand[1].rank and 'split' not in options:
             options.append('split')
-        if hand[0][0] != hand[1][0] and 'split' in options:
+        if hand[0].rank != hand[1].rank and 'split' in options:
             options.remove('split')
         if len(hand) > 2:
             if 'double down' in options:
@@ -163,12 +171,12 @@ def playeraction(i, hand):
         if len(playerHands) > 1:
             print(f'For hand number #{i}, the total is {hand.value}. Your cards are:')
             for card in hand:
-                print('{} of {}'.format(card[0], card[1]))
+                print('{} of {}'.format(card.rank, card.suit))
         response = input('What would you like to do? Your options are: ' + ', '.join(options) + '. \n').strip().lower()
         if response == 'hit':
             data['hits'] += 1
             hit(hand.cards)
-            print(f'You drew the {hand[-1][0]} of {hand[-1][1]}. Your hand is now {hand.value}.')
+            print(f'You drew the {hand[-1].rank} of {hand[-1].suit}. Your hand is now {hand.value}.')
             if hand.bust:
                 data['player busts'] += 1
                 data['losses'] += 1
@@ -189,7 +197,7 @@ def playeraction(i, hand):
                 balance -= hand.wager
                 hand.wager *= 2
                 hit(hand.cards)
-                print(f'You have chosen to double down. You drew the {hand[-1][0]} of {hand[-1][1]}. Your hand is now {hand.value}.')
+                print(f'You have chosen to double down. You drew the {hand[-1].rank} of {hand[-1].suit}. Your hand is now {hand.value}.')
                 if hand.bust:
                     data['player busts'] += 1
                     data['losses'] += 1
@@ -199,7 +207,7 @@ def playeraction(i, hand):
                 break
         elif response == 'split':
             if hand.wager <= balance:
-                if len(hand) == 2 and hand[0][0] == hand[1][0]:
+                if len(hand) == 2 and hand[0].rank == hand[1].rank:
                     data['hands'] += 1
                     data['splits'] += 1
                     nexthand = len(playerHands) + 1
@@ -252,7 +260,9 @@ class InputBox:
                 if self.active:
                     if event.key == pygame.K_RETURN:
                         self.deactivate = True
-                        return self.text
+                        push = self.text
+                        self.text = ''
+                        return push
                     elif event.key == pygame.K_BACKSPACE:
                         self.text = self.text[:-1]
                     else:
@@ -268,6 +278,29 @@ class InputBox:
             window.blit(self.textsurface, (self.rect.x + 5, self.rect.y + 5))
             pygame.draw.rect(window, self.color, self.rect, 2)
 
+class Button:
+    def __init__(self, x, y, w, h, color, text= ''):
+        self.x = x
+        self.y = y
+        self.w = w
+        self.h = h
+        self.color = color
+        self.text = text
+
+    def draw(self, win, outline=None):
+        if outline:
+            pygame.draw.rect(win, outline, (self.x - 2, self.y - 2, self.w + 4, self.h + 4), 0)
+        pygame.draw.rect(win, self.color, (self.x, self.y, self.w, self.h), 0)
+        if self.text != '':
+            font = pygame.font.SysFont('comicsans', 30)
+            text = font.render(self.text, 1, white)
+            win.blit(text, (self.x + (self.w/2 -text.get_width()/2), self.y + (self.h/2 - text.get_height()/2)))
+    def isOver(self, pos):
+        if pos[0] > self.x and pos[0] < self.x + self.w:
+            if pos[1] > self.y and pos[1] < self.y + self.h:
+                return True
+        return False
+
 #give them 1000 chips to start with
 balance = 1000
 
@@ -275,7 +308,8 @@ text = ''
 font = pygame.font.SysFont('comicsans', 30)
 clock = pygame.time.Clock()
 namebox = InputBox(300, 450, 100, 30)
-inputboxes = [namebox]
+betbox = InputBox(300, 450, 100, 30)
+inputboxes = [namebox, betbox]
 name = ''
 
 # establish deck
@@ -283,16 +317,14 @@ deck = FrenchDeck()
 
 #start game by asking player's name
 while True:
-    introtext = 'Welcome to the blackjack table. What is your name?'
-    intro = font.render(introtext, True, white)
+    intro = font.render('Welcome to the blackjack table. What is your name?', True, white)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             sys.exit()
         name = namebox.handle_event(event)
     if name is not None:
         win.fill(black)
-        introtext = f'Good luck, {name}. You have 1000 chips to start.'
-        intro = font.render(introtext, True, white)
+        intro = font.render(f'Good luck, {name}. You have 1000 chips to start.', True, white)
         win.blit(intro, (300, 300))
         pygame.display.flip()
         time.sleep(3)
@@ -307,10 +339,8 @@ while True:
 
 #start game loop
 while True:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            sys.exit()
 
+    #create deck for this hand
     cards = []
     for i in range(0, 52):
         cards.append(i)
@@ -326,104 +356,163 @@ while True:
     dealerH = Hand()
     hit(dealerH.cards)
     hit(dealerH.cards)
+    # dealerH.cards.append(deck[-1])
+    # dealerH.cards.append(deck[-2])
+
+    bet = None
+    #ask player how much they want to wager for the hand
+    while True:
+        betbox.deactivate = False
+        text = font.render('How much would you like to wager on this hand?', True, white)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                sys.exit()
+            bet = betbox.handle_event(event)
+        if bet is not None:
+            try:
+                bet = int(bet)
+                if bet > 0 and bet < balance:
+                    balance -= bet
+                    playerHands[1].wager = bet
+                    break
+            except:
+                bet = None
+        balancebanner = font.render(f'Balance: {balance}', True, white)
+        betbox.update()
+        win.fill(black)
+        win.blit(balancebanner, (850, 20))
+        win.blit(text, (300, 300))
+        betbox.draw(win)
+        pygame.display.flip()
+        clock.tick(30)
+
+    balancebanner = font.render(f'Balance: {balance}', True, white)
     card1 = pygame.image.load(playerHands[1][0].iLoc)
     card2 = pygame.image.load(playerHands[1][1].iLoc)
     card3 = pygame.image.load(dealerH[0].iLoc)
     card4 = pygame.image.load(path + r'\Cards\Cardback.png')
     win.fill(black)
+    win.blit(balancebanner, (850, 20))
     win.blit(card1, (50, 50))
     win.blit(card2, (190, 50))
     win.blit(card3, (50, 240))
     win.blit(card4, (190, 240))
     pygame.display.flip()
-    time.sleep(5)
+    time.sleep(2)
 
-    # #ask player how much they want to wager for the hand
-    # while True:
-    #     try:
-    #         bet = int(input(f'How much would you like to wager on this hand? \n').strip())
-    #         if bet <= balance:
-    #             playerHands[1].wager = bet
-    #             balance -= bet
-    #             break
-    #         else:
-    #             print(f'Please enter a number. Your current balance is {balance}.')
-    #     except:
-    #         print(f'Please enter a number. Your current balance is {balance}.')
-    #
-    # #reveal player's starting hand and the dealer's first card
-    # print(f'You have the {playerHands[1][0][0]} of {playerHands[1][0][1]} and the {playerHands[1][1][0]} of {playerHands[1][1][1]} for a total of {playerHands[1].value}. The dealer is showing the {dealerH[0][0]} of {dealerH[0][1]}.')
-    #
-    # #if both player and dealer have blackjack
-    # if playerHands[1].blackjack and dealerH.blackjack:
-    #     data['playerBJs'] += 1
-    #     data['dealerBJs'] += 1
-    #     data['pushes'] += 1
-    #     balance += playerHands[1].wager
-    #     print('Both you and the dealer have blackjack. The hand is a push. What are the odds?')
-    #     restarter()
-    #     continue
-    #
-    # #if just the player has blackjack
-    # if playerHands[1].blackjack and not dealerH.blackjack:
-    #     data['playerBJs'] += 1
-    #     data['wins'] += 1
-    #     balance += int((playerHands[1].wager * 2.5))
-    #     print('You have blackjack. Big money!')
-    #     restarter()
-    #     continue
-    #
-    # #if the dealer is showing an ace, ask about insurance
-    # w = 0
-    # while w == 0 and dealerH[0][0] == 'Ace' and not playerHands[1].blackjack:
-    #     insurance = int(playerHands[1].wager / 2)
-    #     if insurance <= balance:
-    #         response = input(f'The dealer is showing an ace, would you like to buy insurance? It is half the amount of your original bet, so {insurance}. (yes or no) \n').strip().lower()
-    #         if response == 'yes':
-    #             data['ibets taken'] += 1
-    #             balance -= insurance
-    #             if dealerH.blackjack:
-    #                 data['dealerBJs'] += 1
-    #                 data['losses'] += 1
-    #                 data['ibets won'] += 1
-    #                 balance += insurance * 3
-    #                 print(f'The dealer\'s other card is the {dealerH[1][0]} of {dealerH[1][1]} and therefore they have blackjack, but you won the insurance bet. Well done, {name}.')
-    #                 playerHands[1].done = True
-    #                 break
-    #             else:
-    #                 data['ibets lost'] += 1
-    #                 print('The dealer does not have blackjack, so you lost the insurance bet. But, the hand continues.')
-    #                 break
-    #         elif response == 'no':
-    #             if dealerH.blackjack:
-    #                 data['dealerBJs'] += 1
-    #                 data['losses'] += 1
-    #                 data['ibets missed'] += 1
-    #                 print(f'The dealer\'s other card is the {dealerH[1][0]} of {dealerH[1][1]} and therefore they have blackjack. Tough luck old chap')
-    #                 playerHands[1].done = True
-    #                 break
-    #             else:
-    #                 data['ibets avoided'] += 1
-    #                 print('The dealer does not have blackjack. The hand continues.')
-    #                 break
-    #         else:
-    #             print('Please respond yes or no')
-    #     else:
-    #         print('The dealer is showing an ace, but you do not have enough funds to buy insurance.')
-    #         if dealerH.blackjack:
-    #             data['dealerBJs'] += 1
-    #             data['losses'] += 1
-    #             print(f'The dealer\'s other card is the {dealerH[1][0]} of {dealerH[1][1]} and therefore they have blackjack. Tough luck old chap')
-    #             playerHands[1].done = True
-    #             break
-    #         else:
-    #             print('The dealer does not have blackjack. The hand continues.')
-    #             break
-    #
-    # #restart if game is done
-    # if endCheck(playerHands) == True:
-    #     restarter()
-    #     continue
+    #if both player and dealer have blackjack
+    if playerHands[1].blackjack and dealerH.blackjack:
+        # data['playerBJs'] += 1
+        # data['dealerBJs'] += 1
+        # data['pushes'] += 1
+        balance += playerHands[1].wager
+        balancebanner = font.render(f'Balance: {balance}', True, white)
+        text = font.render('Both you and the dealer have blackjack. What are the odds?', True, white)
+        win.fill(black)
+        win.blit(balancebanner, (850, 20))
+        win.blit(text, (300, 300))
+        pygame.display.flip()
+        time.sleep(2)
+        restarter()
+        continue
+
+    #if just the player has blackjack
+    if playerHands[1].blackjack and not dealerH.blackjack:
+        # data['playerBJs'] += 1
+        # data['wins'] += 1
+        balance += int((playerHands[1].wager * 2.5))
+        balancebanner = font.render(f'Balance: {balance}', True, white)
+        text = font.render('You have blackjack. Big money!', True, white)
+        win.fill(black)
+        win.blit(balancebanner, (850, 20))
+        win.blit(text, (300, 300))
+        pygame.display.flip()
+        time.sleep(2)
+        restarter()
+        continue
+
+    #if the dealer is showing an ace, ask about insurance
+    w = 0
+    while w == 0 and dealerH[0].rank == 'Ace' and not playerHands[1].blackjack:
+        insurance = int(playerHands[1].wager / 2)
+        if insurance <= balance:
+            yesbutton = Button(600, 600, 150, 100, green, 'yes')
+            nobutton = Button(750, 600, 150, 100, green, 'no')
+            while True:
+                text1 = font.render('The dealer is showing an ace, would you like to buy insurance?', True, white)
+                text2 = font.render(f'It is half the amount of your original bet, so {insurance}. (yes or no)', True, white)
+                for event in pygame.event.get():
+                    pos = pygame.mouse.get_pos()
+                    if event.type == pygame.QUIT:
+                        sys.exit()
+                    if event.type == pygame.MOUSEBUTTONDOWN:
+                        if yesbutton.isOver(pos):
+                            print('success')
+                        if nobutton.isOver(pos):
+                            print('not success')
+                    if event.type == pygame.MOUSEMOTION:
+                        if yesbutton.isOver(pos):
+                            yesbutton.color = white
+                        else:
+                            yesbutton.color = green
+                        if nobutton.isOver(pos):
+                            nobutton.color = white
+                        else:
+                            nobutton.color = green
+                    # if response is not None:
+                    #     if response == 'yes':
+                    #         # data['ibets taken'] += 1
+                    #         balance -= insurance
+                    #         if dealerH.blackjack:
+                    #             # data['dealerBJs'] += 1
+                    #             # data['losses'] += 1
+                    #             # data['ibets won'] += 1
+                    #             balance += insurance * 3
+                    #             print(f'The dealer\'s other card is the {dealerH[1].rank} of {dealerH[1].suit} and therefore they have blackjack, but you won the insurance bet. Well done, {name}.')
+                    #             playerHands[1].done = True
+                    #             break
+                    #         else:
+                    #             # data['ibets lost'] += 1
+                    #             print('The dealer does not have blackjack, so you lost the insurance bet. But, the hand continues.')
+                    #             break
+                    #     elif response == 'no':
+                    #         if dealerH.blackjack:
+                    #             # data['dealerBJs'] += 1
+                    #             # data['losses'] += 1
+                    #             # data['ibets missed'] += 1
+                    #             print(f'The dealer\'s other card is the {dealerH[1].rank} of {dealerH[1].suit} and therefore they have blackjack. Tough luck old chap')
+                    #             playerHands[1].done = True
+                    #             break
+                    #         else:
+                    #             # data['ibets avoided'] += 1
+                    #             print('The dealer does not have blackjack. The hand continues.')
+                    #             break
+                    #     else:
+                    #         print('Please respond yes or no.')
+                    #         response = None
+                win.fill(black)
+                nobutton.draw(win,white)
+                yesbutton.draw(win, white)
+                win.blit(text1, (400, 300))
+                win.blit(text2, (400, 330))
+                pygame.display.flip()
+                clock.tick(30)
+        else:
+            print('The dealer is showing an ace, but you do not have enough funds to buy insurance.')
+            if dealerH.blackjack:
+                # data['dealerBJs'] += 1
+                # data['losses'] += 1
+                print(f'The dealer\'s other card is the {dealerH[1].rank} of {dealerH[1].suit} and therefore they have blackjack. Tough luck old chap')
+                playerHands[1].done = True
+                break
+            else:
+                print('The dealer does not have blackjack. The hand continues.')
+                break
+
+    #restart if game is done
+    if endCheck(playerHands) == True:
+        restarter()
+        continue
     #
     # #if the dealer has hidden blackjack
     # if dealerH.blackjack:
@@ -433,8 +522,8 @@ while True:
     #     restarter()
     #     continue
     #
-    # #establish options for the player's action
-    # options = ['hit', 'stand', 'double down']
+    #establish options for the player's action
+    options = ['hit', 'stand', 'double down']
     #
     # # loop through player actions
     # while True:
@@ -457,7 +546,7 @@ while True:
     #     continue
     #
     # #reveal the dealer's other card
-    # print(f'The dealer\'s other card is the {dealerH[1][0]} of {dealerH[1][1]} for a total of {dealerH.value}.')
+    # print(f'The dealer\'s other card is the {dealerH[1].rank} of {dealerH[1].suit} for a total of {dealerH.value}.')
     #
     # #check the dealer's result and draw cards if necessary
     # while True:
@@ -475,7 +564,7 @@ while True:
     #     else:
     #         assert dealerH.value < 17
     #         hit(dealerH.cards)
-    #         print(f'The dealer draws the {dealerH[-1][0]} of {dealerH[-1][1]}. The dealer now has {dealerH.value}.')
+    #         print(f'The dealer draws the {dealerH[-1].rank} of {dealerH[-1].suit}. The dealer now has {dealerH.value}.')
     #
     # #restart if the game is done
     # if endCheck(playerHands) == True:
@@ -503,5 +592,5 @@ while True:
     #
     # for hand in playerHands.values():
     #     assert hand.done
-    # restarter()
-    # continue
+    restarter()
+    continue
