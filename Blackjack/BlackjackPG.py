@@ -132,9 +132,17 @@ def restarter():
                 sys.exit()
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if yesbutton.isOver(pos):
-                    print('success')
+                    return
                 if nobutton.isOver(pos):
-                    print('not success')
+                    # if balance > data['high score']:
+                    #     data['high score'] = balance
+                    #     print('New high score! Well done.')
+                    # file1 = open('stats.json', 'w')
+                    # json.dump(data, file1)
+                    # file1.close()
+                    # print(f'Thank you for playing, {name}. Goodbye.')
+                    pygame.quit()
+                    sys.exit()
             if event.type == pygame.MOUSEMOTION:
                 if yesbutton.isOver(pos):
                     yesbutton.color = white
@@ -144,7 +152,6 @@ def restarter():
                     nobutton.color = white
                 else:
                     nobutton.color = green
-        print('restarter')
         win.fill(black)
         yesbutton.draw(win, white)
         nobutton.draw(win, white)
