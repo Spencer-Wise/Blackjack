@@ -1,5 +1,4 @@
 from random import randrange
-import collections
 import sys
 import json
 
@@ -295,7 +294,7 @@ while True:
                     print('The dealer does not have blackjack. The hand continues.')
                     break
             else:
-                print('Please respond yes or no')
+                print('Please respond yes or no.')
         else:
             print('The dealer is showing an ace, but you do not have enough funds to buy insurance.')
             if dealerH.blackjack:
